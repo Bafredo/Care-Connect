@@ -1,39 +1,18 @@
 package com.example.careconnect.Pages.Auth
 
-import HidePassword
-import ShowPassword
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -49,156 +28,131 @@ import com.example.careconnect.ViewModels.AuthViewModel
 import com.example.careconnect.ViewModels.SuperViewModel
 import kotlinx.coroutines.launch
 
-
 @Composable
-fun Login(authNav: NavController,main : NavController,vm : AuthViewModel,s : SuperViewModel){
+fun Login(authNav: NavController, mainNav: NavController, authVM: AuthViewModel, superVM: SuperViewModel) {
+    var usernameOrEmail by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var loginError by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
 
-    var field1 by remember { mutableStateOf("") }
-    var field2 by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
 
-    var obs by remember { mutableStateOf(true) }
-
-    var resp by remember { mutableStateOf(RecievedUser()) }
-
-    fun handleField1() = {it : String ->
-        field1 = it
-    }
-    fun handleField2() = {it : String ->
-        field2 = it
-    }
-    val scope = rememberCoroutineScope()
-
-    Column (
+    Column(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.Top,
         modifier = Modifier
             .fillMaxSize()
-            .padding(30.dp, 10.dp)
-    ){
+            .padding(30.dp)
+    ) {
         Spacer(Modifier.height(20.dp))
 
-        Text(
-            text = "Care Connect",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Text("Care Connect", fontSize = 28.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(30.dp))
-        Text(
-            "Sign in ",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(20.dp))
-        Text(
-            text ="Account",
 
-        )
-        Spacer(Modifier.height(7.dp))
-        OutlinedTextField(
-            modifier = Modifier
-                .fillMaxWidth(),
-            value = field1,
-            onValueChange = handleField1(),
-            placeholder = { Text("Username or E-mail") },
-            leadingIcon = {
-                Icon(
-                    Icons.Outlined.Person,
-                    null
-                )
-            },
-            )
+        Text("Sign In", fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(20.dp))
 
         OutlinedTextField(
-            placeholder = { Text("password") },
-            modifier = Modifier
-                .fillMaxWidth(),
-            value = field2,
-            onValueChange = handleField2(),
-            visualTransformation = if(obs) PasswordVisualTransformation() else VisualTransformation.None,
-            leadingIcon = {
-                Icon(
-                    Icons.Outlined.Lock,
-                    null
-                )
-            },
+            modifier = Modifier.fillMaxWidth(),
+            value = usernameOrEmail,
+            onValueChange = { usernameOrEmail = it },
+            label = { Text("Username or Email") },
+            leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
+            singleLine = true
+        )
+        Spacer(Modifier.height(20.dp))
+
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") },
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
             trailingIcon = {
-                IconButton(
-                    onClick = {obs = !obs}
-                ) {
-                    Image(
-                        modifier = Modifier
-                            .size(20.dp),
-                        imageVector = if(obs) ShowPassword else HidePassword,
-                        contentDescription =   null,
-                        contentScale = ContentScale.Inside
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = null
                     )
                 }
-            }
-
+            },
+            singleLine = true
         )
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(10.dp))
+
+        loginError?.let {
+            Text(it, color = Color.Red, fontSize = 14.sp)
+            Spacer(Modifier.height(10.dp))
+        }
+
         Row(
             horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp)
+            modifier = Modifier.fillMaxWidth().padding(10.dp)
         ) {
-            Box {
-                Text(
-                    "Forgot password?"
-                )
-            }
-
+            Text("Forgot password?", color = Color.Blue, modifier = Modifier.clickable { /* Navigate to forgot password */ })
         }
+
         Spacer(Modifier.height(20.dp))
+
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp)
+            modifier = Modifier.fillMaxWidth().padding(10.dp)
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .clickable(true, null, null) {
-                        authNav.popBackStack()
-                    }
-                    .background(Color.DarkGray, RoundedCornerShape(10.dp))
-                    .padding(20.dp)
-                    .width(70.dp)
+            Button(
+                onClick = { authNav.popBackStack() },
+                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.width(100.dp)
+            ) {
+                Text("Back", color = Color.White)
+            }
 
-            ) { Text("Back") }
-            Box (
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .clickable(true, null, null) {
-                        if (field1.isNotEmpty() && field2.isNotEmpty()) {
+            Button(
+                onClick = {
+                    if (usernameOrEmail.isNotEmpty() && password.isNotEmpty()) {
+                        isLoading = true
+                        coroutineScope.launch {
+                            try {
+                                val response = login(User(usernameOrEmail.trim(), password.trim()))
+                                val updateCode = updateRemote(superVM.remote, response.token!!)
 
-                                scope.launch {
-                                    try {
-                                    val rec = login(User(field1.trim(), field2.trim()))
-                                        val code = updateRemote(s.remote,rec.token!!)
-
-                                        if (code == 200 || code == 409) {
-
-                                        vm.setUser(UserData(username = rec.user?.username, email =  rec.user?.email, password =  field2, token =  rec.token))
-                                        vm.login()
-
-                                        }
-                                    } catch (e: Exception) {
-                                        println(e.localizedMessage)
-                                    }
-
+                                if (updateCode == 200 || updateCode == 409) {
+                                    authVM.setUser(
+                                        UserData(
+                                            username = response.user?.username,
+                                            email = response.user?.email,
+                                            password = password,
+                                            token = response.token
+                                        )
+                                    )
+                                    authVM.login()
+                                    mainNav.navigate("dash")
+                                } else {
+                                    loginError = "Failed to update remote data"
                                 }
-
+                            } catch (e: Exception) {
+                                loginError = "Login failed: ${e.localizedMessage}"
+                            } finally {
+                                isLoading = false
+                            }
                         }
+                    } else {
+                        loginError = "Please fill in all fields"
                     }
-                    .background(Color(0xFF0F36AB), RoundedCornerShape(10.dp))
-                    .padding(20.dp)
-                    .width(70.dp)
-            ){ Text("Next") }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F36AB)),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.width(100.dp),
+                enabled = !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                } else {
+                    Text("Login",color = Color.White)
+                }
+            }
         }
     }
-
 }

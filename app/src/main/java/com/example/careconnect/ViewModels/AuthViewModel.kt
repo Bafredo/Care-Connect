@@ -2,86 +2,100 @@ package com.example.careconnect.ViewModels
 
 import android.location.Location
 import android.util.Log
-import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-
 import androidx.lifecycle.ViewModel
-import com.example.careconnect.Database.ChatMessageDto
-import com.example.careconnect.Database.ChatsDto
-import com.example.careconnect.Database.UserData
-import com.example.careconnect.Database.UserRepository
-import com.example.careconnect.Database.toDto
-import com.example.careconnect.Database.toUserdata
-import com.example.careconnect.Network.Calls.getHospitalCareGivers
-import com.example.careconnect.Network.Calls.getHospitalsNearMe
-import com.example.careconnect.Network.Calls.sendMessageCall
-import com.example.careconnect.Network.Calls.updateLocation
-import com.example.careconnect.Network.Models.Doctor
-import com.example.careconnect.Network.Models.DoctorDto
-import com.example.careconnect.Network.Models.Hospital
-import com.example.careconnect.Network.Models.HospitalDto
-import com.example.careconnect.Network.Models.HospitalsDto
-import com.example.careconnect.Network.Models.SendMessageDto
-import com.example.careconnect.Network.Models.toDto
-import com.example.careconnect.Pages.Hidden.FirestoreMessage
-import com.example.careconnect.Pages.Hidden.toChatMessageDto
-import com.google.android.gms.tasks.Tasks.await
-import com.google.firebase.Firebase
+import androidx.lifecycle.viewModelScope
+import com.example.careconnect.Database.*
+import com.example.careconnect.Network.Calls.*
+import com.example.careconnect.Network.Models.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.firestore
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
 class AuthViewModel : ViewModel() {
 
-    // Authorization state as StateFlow.
+    companion object {
+        private const val TAG = "AuthViewModel"
+    }
+
+    // Authorization state
     private val _isAuthorized = MutableStateFlow(false)
     val isAuthorized: StateFlow<Boolean> = _isAuthorized.asStateFlow()
 
-    // User state as StateFlow for Compose observation.
+    // User data
     private val _user = MutableStateFlow(UserData())
     val user: StateFlow<UserData> = _user.asStateFlow()
 
-    // Instance of the UserRepository.
     private val repository = UserRepository()
-    // Access a Firestore instance from your Activity
     private val db = FirebaseFirestore.getInstance()
     private var listenerRegistration: ListenerRegistration? = null
 
-    // Live updates of chat messages (converted to your UI model)
-    private val _messages = mutableStateOf<List<ChatMessageDto>>(emptyList())
-    val messages = _messages.value
+    // Live chat messages
+    private val _messages = MutableStateFlow<List<ChatMessageDto>>(emptyList())
+    val messages: StateFlow<List<ChatMessageDto>> = _messages.asStateFlow()
 
+    /**
+     * Listens to chat updates from Firestore in real-time.
+     */
     fun listenToChat(chatId: String) {
-        // Remove any existing listener
-        listenerRegistration?.remove()
+        listenerRegistration?.remove() // Remove previous listener to avoid duplication
 
         listenerRegistration = db.collection("chats").document(chatId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    _messages.value = repository.getChats(chatId)
+                    Log.e(TAG, "Firestore listener error: ${error.localizedMessage}")
+                    return@addSnapshotListener
                 }
+
                 snapshot?.let {
                     if (it.exists()) {
-                        // Deserialize FirestoreMessage and convert each MessageItem to ChatMessageDto
                         val firestoreMsg = it.toObject(FirestoreMessage::class.java)
-                        val updatedMessages = firestoreMsg?.messages
-                            ?.map { messageItem -> _user.value.id?.let { it1 ->
-                                messageItem.toChatMessageDto(
-                                    it1
-                                )
-                            } }
-                            ?: emptyList()
-                        _messages.value = updatedMessages as List<ChatMessageDto>
+                        firestoreMsg?.messages?.mapNotNull { messageItem ->
+                            _user.value.id?.let { userId -> messageItem.toChatMessageDto(userId) }
+                        }?.let { newMessages ->
+                            _messages.update { newMessages }
+                        }
                     } else {
-                        println("Does not exist")
+                        Log.w(TAG, "Chat document does not exist")
                     }
                 }
             }
+    }
+
+    /**
+     * Sends a message and updates the chat list.
+     */
+    fun sendMessage(message: String, receiverId: String, onResponse: (String) -> Unit) {
+        viewModelScope.launch {
+            _user.value.token?.let { token ->
+                try {
+                    val resp = sendMessageCall(SendMessageDto(message, receiverId), token)
+                    resp?.chatid?.let { chatId ->
+                        onResponse(chatId)
+
+                        // Append the new message to the existing list
+                        _messages.update { currentMessages ->
+                            currentMessages + ChatMessageDto(
+                                text = message,
+                                isSent = true
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error sending message: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Updates the chat messages both locally and in Firestore.
+     */
+    fun updateChats(chatId: String, messages: List<ChatMessageDto>, receiverId: String? = null,recieverName : String? = null) {
+        viewModelScope.launch {
+            repository.updateChats(chatId, messages, receiverId,recieverName)
+            _messages.update { messages } // Ensure UI updates
+        }
     }
 
     override fun onCleared() {
@@ -89,114 +103,98 @@ class AuthViewModel : ViewModel() {
         listenerRegistration?.remove()
     }
 
-
-    suspend fun getHospitals(): List<HospitalDto>{
-        var response : List<HospitalDto> = emptyList()
-        _user.value.token?.let { autht ->
-            val resp = getHospitalsNearMe(autht)
-            resp?.let { response = it }
-            println(" gotten : $response")
-        }
-        return  response
+    /**
+     * Fetches nearby hospitals based on user location.
+     */
+    suspend fun getHospitals(): List<HospitalDto> {
+        return _user.value.token?.let { authToken ->
+            getHospitalsNearMe(authToken).orEmpty()
+        } ?: emptyList()
     }
 
-    suspend fun getHospitalDoctors(id: String) : List<DoctorDto>{
-        var response = emptyList<Doctor>()
-        _user.value.token?.let {
-            val resp = getHospitalCareGivers(id = id,it)
-            response = resp ?: emptyList()
-            println(" gotten : ${response}")
-        }
-        return response.map { it.toDto() }
+    /**
+     * Fetches doctors from a hospital.
+     */
+    suspend fun getHospitalDoctors(id: String): List<DoctorDto> {
+        return _user.value.token?.let { token ->
+            getHospitalCareGivers(id, token)?.map { it.toDto() }.orEmpty()
+        } ?: emptyList()
     }
 
-    fun updatelocation(location: Location) : Int{
-        var code : Int = 0
-        viewModelScope.launch {
-            _user.value.token?.let {code =  updateLocation(location.latitude,location.longitude, it) }
-        }
-        return code
+    /**
+     * Updates user's location on the server.
+     */
+    suspend fun updateLocation(location: Location): Int {
+        return _user.value.token?.let { token ->
+            updateLocation(location.latitude, location.longitude, token)
+        } ?: 0
     }
 
-    fun getChats(id : String) : List<ChatMessageDto>{
+    /**
+     * Fetches previous chat history from local database.
+     */
+    fun getChats(id: String): List<ChatMessageDto> {
         return repository.getChats(id)
     }
 
-    fun updateChats(chatid: String, messages : List<ChatMessageDto>, receiver : String? = null){
+    /**
+     * Sets the user in the local database and updates ViewModel state.
+     */
+    fun setUser(user: UserData) {
         viewModelScope.launch {
-            repository.updateChats(chatid,messages,receiver)
-        }
-    }
-    fun sendMessage(message : String,recieverid : String,onResponse:(String)->Unit){
-        viewModelScope.launch {
-            _user.value.token?.let{ t ->
-                println("vm calling send message")
-                val resp =
-                    sendMessageCall(
-                        s = SendMessageDto(
-                            message,
-                            recieverid
-                        ),
-                        autht = t
-                    )
-            try{ resp?.chatid.let {
-                if (it != null) {
-                    onResponse(it)
-                }
-            } }catch (e : Exception){e.printStackTrace()}
-
-
-            }
-        }
-    }
-
-    // Save the user to Realm and update state.
-    fun setUser(u: UserData) {
-        viewModelScope.launch {
-            println("Setting db user to : ${ u }")
-            repository.setUser(u)
-            _user.value = u
+            Log.d(TAG, "Setting user in DB: $user")
+            repository.setUser(user)
+            _user.value = user
             login()
         }
     }
 
-    // Retrieve the user from Realm and update state.
+    /**
+     * Retrieves the currently logged-in user from local storage.
+     */
     fun getUser(): UserData? {
-        // Fetch from the database.
         val storedUser = repository.getUser()?.toUserdata()
         storedUser?.let { _user.value = it }
-            return storedUser
-
+        return storedUser
     }
 
-    fun getChatList() : List<ChatsDto>{
+    /**
+     * Fetches list of user's chat conversations.
+     */
+    fun getChatList(): List<ChatsDto> {
         return repository.getAllChats().map { it.toDto() }
     }
 
-    fun delete(){
+    /**
+     * Deletes all user data from the local database.
+     */
+    fun deleteAllUsers() {
         viewModelScope.launch {
             repository.deleteAllUsers()
         }
     }
 
+    /**
+     * Handles user login.
+     */
+    fun login() {
+        _isAuthorized.update { true }
+    }
+
+    /**
+     * Handles user logout.
+     */
+    fun logout() {
+        _isAuthorized.update { false }
+    }
+
     init {
-        // Optionally load the user from the database when the view model is created.
         viewModelScope.launch {
             repository.getUser()?.let {
                 _user.value = it.toUserdata()
-                println("Found user : ${it.username}")
+                Log.d(TAG, "Found user: ${it.username}")
                 login()
             }
         }
-    }
-
-    // Simulate login by setting the authorization state to true.
-    fun login() {
-        _isAuthorized.value = true
-    }
-
-    // Simulate logout by setting the authorization state to false.
-    fun logout() {
-        _isAuthorized.value = false
     }
 }

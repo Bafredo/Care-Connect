@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,22 +40,22 @@ import com.example.careconnect.ViewModels.AuthViewModel
 import com.example.careconnect.ui.Composables.Doctorcard
 
 @Composable
-fun Hospital(a : AuthViewModel,hospitalid : String,name : String,distance : String,navController: NavController){
+fun Hospital(a: AuthViewModel, hospitalid: String, name: String, distance: String, navController: NavController) {
     var hospitalDoctors by remember { mutableStateOf(emptyList<DoctorDto>()) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(null) {
+    LaunchedEffect(Unit) {
         hospitalDoctors = a.getHospitalDoctors(hospitalid)
-        println("Doctors : $hospitalDoctors")
+        isLoading = false
     }
 
-    LazyColumn (
+    LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxSize()
-    ){
-
+        modifier = Modifier.fillMaxSize()
+    ) {
         item {
-            HospitalTopBar(name,distance,navController)
+            HospitalTopBar(name, distance, navController)
+
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
@@ -72,15 +73,30 @@ fun Hospital(a : AuthViewModel,hospitalid : String,name : String,distance : Stri
                         text = "(${hospitalDoctors.size})"
                     )
                 }
-
-
             }
         }
-        items(hospitalDoctors){ it ->
-            Doctorcard(it, { navController.navigate("chat-screen/new/${false}/${it.id}") })
+
+        // Show loading indicator if data is still being fetched
+        if (isLoading) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        } else {
+            // Display doctors once loaded
+            items(hospitalDoctors) { doctor ->
+                Doctorcard(doctor) {
+                    navController.navigate("chat-screen/new/${false}/${doctor.id}/${doctor.full_name}")
+                }
+            }
         }
     }
 }
+
 
 @Composable
 fun HospitalTopBar(name : String,distance: String,navController: NavController) {

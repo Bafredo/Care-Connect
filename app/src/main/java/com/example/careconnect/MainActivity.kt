@@ -1,6 +1,5 @@
 package com.example.careconnect
 
-import DrawerContent
 import ProfilePage
 import android.Manifest
 import android.content.pm.PackageManager
@@ -13,20 +12,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -38,8 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -62,7 +51,6 @@ import com.example.careconnect.ui.Composables.FloatingActionButton
 import com.example.compose.AppTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.android.gms.location.LocationServices
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel = AuthViewModel()
@@ -110,6 +98,9 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+
+
+
                 SideEffect {
                     systemUiController.setStatusBarColor(
                         color = systemColors,
@@ -153,8 +144,8 @@ class MainActivity : ComponentActivity() {
                             Auth(navController, authViewModel, superModel)
                         }
                         composable("dash") {
-                            if(location.value != null){
-                                println("location update :${authViewModel.updatelocation(location.value!!)}")
+                            LaunchedEffect(key1 = Unit) {
+                                location.value?.let { it1 -> authViewModel.updateLocation(it1) }
                             }
                             PatientDashboardScreen(authViewModel,navController)
                         }
@@ -169,7 +160,7 @@ class MainActivity : ComponentActivity() {
                                 name = authViewModel.getUser()?.username,
                                 email = authViewModel.getUser()?.username,
                                 profileImageRes = R.drawable.prof,
-                                onEditClick = {authViewModel.delete();authViewModel.logout()}
+                                onEditClick = {authViewModel.deleteAllUsers();authViewModel.logout()}
                             )
                         }
                         composable("editprofile/{mail/{username}}",arguments = listOf(navArgument("mail") { type = NavType.StringType },
@@ -205,19 +196,29 @@ class MainActivity : ComponentActivity() {
                                  }
                              }
                         }
-                        composable("chat-screen/{id}/{isBot}/{reciever}", arguments = listOf(
+                        composable("chat-screen/{id}/{isBot}/{recieverId}/{recieverName}", arguments = listOf(
                             navArgument("isBot"){type = NavType.BoolType},
                             navArgument("id"){type = NavType.StringType},
-                            navArgument("reciever"){type = NavType.StringType}
+                            navArgument("recieverId"){type = NavType.StringType},
+                            navArgument("recieverName"){type = NavType.StringType}
 
                         )){ it ->
                             val bot = it.arguments?.getBoolean("isBot")
                             val id = it.arguments?.getString("id")
-                            val recieverid = it.arguments?.getString("reciever")
+                            val recieverid = it.arguments?.getString("recieverId")
+                            val recieverName = it.arguments?.getString("recieverName")
                             println("NAvigating with $id")
                             if (id != null) {
                                 if (recieverid != null) {
-                                    ChatScreen(isBot = bot!!,vm = authViewModel, chatid = id, navController = navController,context = applicationContext, activity = this@MainActivity, recieverid = recieverid)
+                                    ChatScreen(
+                                        isBot = bot!!,
+                                        vm = authViewModel,
+                                        chatid = id,
+                                        navController = navController,
+                                        context = applicationContext,
+                                        activity = this@MainActivity,
+                                        recieverId = recieverid,
+                                        recieverName = recieverName)
                                 }
                             }
                         }

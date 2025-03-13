@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.firebase.messaging.ktx)
+    implementation(libs.androidx.espresso.core)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -81,7 +82,7 @@ dependencies {
     implementation("io.realm.kotlin:library-base:2.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0")
     implementation("com.google.firebase:firebase-firestore:25.1.2")
-
+    implementation( "androidx.compose.material:material-icons-extended:1.5.0")
 
 
 }

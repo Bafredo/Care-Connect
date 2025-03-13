@@ -56,11 +56,13 @@ class UserRepository {
             .find()
         return chat?.messagelist?.toList()?.map { it.toChat() } ?: emptyList()
     }
-    suspend fun updateChats(chatid: String, chats: List<ChatMessageDto>,receiverid : String? = null) {
+    suspend fun updateChats(chatid: String, chats: List<ChatMessageDto>,receiverid : String? = null,recieverName : String? = null) {
+        println("Updating....")
         val chatt = Chats().apply {
             this.chatid = chatid
+            this.name = recieverName ?: "Bot"
             this.messagelist = realmListOf<ChatMessage>().apply { addAll(chats.map { it.toRealmObject() }  as ArrayList<ChatMessage>)}
-            if(receiverid == null) "Bot" else receiverid
+            this.recieverid = receiverid ?: "Bot"
         }
         realm.write {
             // Query for the Chats object with the provided chatid
@@ -73,9 +75,11 @@ class UserRepository {
                     chat.messagelist.apply {
                         clear() // Clear existing messages
                         addAll(chats.map { it.toRealmObject() })
+                        println(chats)
                     }
                 }else{
                     copyToRealm(chatt)
+                    println(chatt.name)
                 }
         }
     }

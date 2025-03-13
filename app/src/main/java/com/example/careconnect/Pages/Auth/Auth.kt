@@ -43,7 +43,7 @@ fun Auth(mainNav : NavController,vm : AuthViewModel,s : SuperViewModel){
         composable("signup") { SignUp(authNav,) }
         composable("verification/{mail}",arguments = listOf(navArgument("mail") { type = NavType.StringType })){it ->
             val mail = it.arguments?.getString("mail") ?: ""
-            Verification(authNav,mail,vm)
+            Verification(authNav,mail)
         }
         composable("commonAuth"){
             Column (

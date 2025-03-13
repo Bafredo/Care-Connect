@@ -18,6 +18,7 @@ open class RealmUser : RealmObject {
 open class Chats : RealmObject {
     @PrimaryKey
     var chatid: String = ""
+    var name : String  = ""
     var messagelist: RealmList<ChatMessage> = realmListOf()
     var recieverid : String = ""
 }
@@ -28,12 +29,15 @@ open class ChatMessage : RealmObject{
 
 data class ChatsDto(
     val chatid : String,
-    val messageList: List<ChatMessageDto>
+    val name : String?  = null,
+    val messageList: List<ChatMessageDto>,
+    var recieverid : String? = null
 )
 
 fun Chats.toDto() = ChatsDto(
-    this.chatid,
-    this.messagelist.toList().map { it.toChat() }
+    chatid = this.chatid,
+    messageList = this.messagelist.toList().map { it.toChat() },
+    recieverid = this.recieverid
 )
 
 fun ChatMessage.toChat() = ChatMessageDto(

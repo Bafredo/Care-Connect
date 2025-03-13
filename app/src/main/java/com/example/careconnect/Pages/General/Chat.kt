@@ -20,12 +20,13 @@ import com.example.careconnect.ui.Composables.ChatListItem
 @Composable
 fun ChatListScreen(navController: NavController,authViewModel: AuthViewModel) {
     var chats by remember { mutableStateOf<List<ChatsDto>>(emptyList()) }
-    LaunchedEffect(navController) {
-        chats = authViewModel.getChatList()
-    }
+
+    println("Chats ${authViewModel.getChatList()}")
+    chats = authViewModel.getChatList()
+
 
     ChatListPage(chats = chats, onChatClick = { chatId ->
-        navController.navigate("chat-screen/${chatId}/${true}")
+        navController.navigate("chat-screen/${chatId}/${false}")
     })
 }
 @Composable

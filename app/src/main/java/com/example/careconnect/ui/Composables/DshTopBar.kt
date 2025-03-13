@@ -25,15 +25,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.careconnect.ViewModels.SuperViewModel
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 @Composable
 fun DashTBar(s : SuperViewModel){
+
+
     Column (
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
@@ -53,22 +59,7 @@ fun DashTBar(s : SuperViewModel){
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF4E8AE7)
                 )
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ){
-                    Icon(
-                        imageVector = Icons.Outlined.DateRange,
-                        null
-                    )
-                    Text(
-                        text = "Date : "
-                    )
-                    Text(
-                        text = "${Date()}",
-                        fontSize = 14.sp
-                    )
-                }
+
             }
             Box(
                 contentAlignment = Alignment.Center,
@@ -76,12 +67,15 @@ fun DashTBar(s : SuperViewModel){
                     .size(45.dp)
 
             ){
-                Image(
+                Box (
                     modifier = Modifier
-                        .size(40.dp),
-                    imageVector = Icons.Filled.Notifications,
-                    contentDescription = null,
-                )
+                        .clip(CircleShape)
+                        .background(Color.Red)
+                        .padding(30.dp)
+
+                ){
+                    
+                }
             }
         }
 

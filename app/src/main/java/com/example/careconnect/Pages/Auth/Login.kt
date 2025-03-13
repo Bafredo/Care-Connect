@@ -182,7 +182,7 @@ fun Login(authNav: NavController,main : NavController,vm : AuthViewModel,s : Sup
 
                                         if (code == 200 || code == 409) {
 
-                                        vm.setUser(UserData(username = field1, email =  rec.user?.email, password =  field2, token =  rec.token))
+                                        vm.setUser(UserData(username = rec.user?.username, email =  rec.user?.email, password =  field2, token =  rec.token))
                                         vm.login()
 
                                         }

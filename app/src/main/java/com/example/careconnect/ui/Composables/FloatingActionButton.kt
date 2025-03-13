@@ -24,7 +24,7 @@ fun FloatingActionButton(navController: NavController){
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .clickable{
-                navController.navigate("chat-screen/''/${true}")
+                navController.navigate("chat-screen/new/${true}")
             }
             .height(50.dp)
             .width(150.dp)

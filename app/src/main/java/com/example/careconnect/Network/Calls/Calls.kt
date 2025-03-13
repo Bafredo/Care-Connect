@@ -118,3 +118,73 @@ suspend fun chatBot(u : String, chatid : String? = null,autht: String ) : Downli
     }
 }
 
+suspend fun updateLocation(latitude : Double, longitude : Double,autht: String ) :Int {
+    return try {
+        println("sending message :${latitude } : ${longitude}")
+        val response = KtorClient.client.patch("${base.Url}/user/location") {
+            header("Authorization", "Bearer $autht")
+            contentType(ContentType.Application.Json)
+            setBody(Location(latitude = latitude, longitude = longitude))
+        }
+        val body: Int = response.status.value
+        body
+    } catch (e: Exception) {
+        e.printStackTrace()
+       0
+    }
+}
+
+suspend fun getHospitalsNearMe(autht: String ) : List<HospitalDto>? {
+    return try {
+        val response = KtorClient.client.get("${base.Url}/hospitals") {
+            header("Authorization", "Bearer $autht")
+            contentType(ContentType.Application.Json)
+        }
+        val body: List<Hospital> = response.body()
+        println(body)
+        body.map { it.toDto() }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+
+suspend fun getHospitalCareGivers(id : String,autht: String ) : List<Doctor>? {
+    return try {
+        val response = KtorClient.client.get("${base.Url}/hospitals/${id}") {
+            header("Authorization", "Bearer $autht")
+            contentType(ContentType.Application.Json)
+        }
+        val body: List<Doctor> = response.body()
+        println(body)
+        body
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+
+suspend fun sendMessageCall(s : SendMessageDto,autht : String) : ChatId? {
+    return try {
+        println("sending message ${s.message}")
+        val response = KtorClient.client.post("${base.Url}/chat/users") {
+            header("Authorization", "Bearer $autht")
+            contentType(ContentType.Application.Json)
+            setBody(s.toModel())
+        }
+        println(response)
+        val body: ChatResponse = response.body<ChatResponse>()
+        println(body)
+        ChatId(
+            chatid = body.chatid,
+            recieverId = s.message
+        )
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+
+
+
+

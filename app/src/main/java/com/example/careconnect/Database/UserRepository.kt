@@ -1,9 +1,10 @@
 package com.example.careconnect.Database
 
-import com.example.careconnect.Pages.Hidden.ChatMessageDto
 import io.realm.kotlin.Realm
 import io.realm.kotlin.RealmConfiguration
 import io.realm.kotlin.ext.query
+import io.realm.kotlin.ext.realmListOf
+import io.realm.kotlin.types.RealmList
 
 class UserRepository {
     // Configure Realm with the schema of our RealmUser model.
@@ -55,7 +56,12 @@ class UserRepository {
             .find()
         return chat?.messagelist?.toList()?.map { it.toChat() } ?: emptyList()
     }
-    suspend fun updateChats(chatid: String, chats: List<ChatMessageDto>) {
+    suspend fun updateChats(chatid: String, chats: List<ChatMessageDto>,receiverid : String? = null) {
+        val chatt = Chats().apply {
+            this.chatid = chatid
+            this.messagelist = realmListOf<ChatMessage>().apply { addAll(chats.map { it.toRealmObject() }  as ArrayList<ChatMessage>)}
+            if(receiverid == null) "Bot" else receiverid
+        }
         realm.write {
             // Query for the Chats object with the provided chatid
             val chat = query<Chats>("chatid == $0", chatid)
@@ -63,10 +69,14 @@ class UserRepository {
                 .find()
 
             // If the chat exists, update its message list
-            chat?.messagelist?.apply {
-                clear() // Clear existing messages
-                addAll(chats.map { it.toRealmObject() })
-            }
+                if(chat != null){
+                    chat.messagelist.apply {
+                        clear() // Clear existing messages
+                        addAll(chats.map { it.toRealmObject() })
+                    }
+                }else{
+                    copyToRealm(chatt)
+                }
         }
     }
     fun getAllChats(): List<Chats> {

@@ -19,11 +19,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -32,22 +27,19 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.careconnect.Network.Models.DoctorDto
+import coil.compose.AsyncImage
+import com.example.careconnect.Network.Models.HospitalDto
 import com.example.careconnect.R
 
 @Composable
-fun Doctorcard(user : DoctorDto,onClick : ()->Unit){
-
-
-
+fun HospitalCard(h : HospitalDto, onClick : ()->Unit){
     Row (
-        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
+            .fillMaxWidth(0.95f)
+            .height(107.dp)
             .clickable {
                 onClick()
             }
-            .fillMaxWidth(0.95f)
-            .height(160.dp)
             .padding(6.dp)
             .border(1.dp, if(isSystemInDarkTheme()) Color(0x3C424242) else Color(0x88E8E7E7), RoundedCornerShape(17.dp))
     ){
@@ -55,7 +47,7 @@ fun Doctorcard(user : DoctorDto,onClick : ()->Unit){
             modifier = Modifier
                 .padding(10.dp)
                 .clip(RoundedCornerShape(41.dp)),
-            painter = painterResource(R.drawable.profile),
+            painter = painterResource(R.drawable.hospital),
             contentDescription = null,
             contentScale = ContentScale.FillBounds
         )
@@ -63,10 +55,10 @@ fun Doctorcard(user : DoctorDto,onClick : ()->Unit){
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(10.dp)
+                .padding(17.dp)
         ){
             Text(
-                text = user.full_name,
+                text = h.name,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 softWrap = false
@@ -81,26 +73,15 @@ fun Doctorcard(user : DoctorDto,onClick : ()->Unit){
 
                 )
                 Text(
-                    text = "Mail : ${user.email}",
+                    text = "Level : ${h.level}",
                     fontSize = 13.sp
                 )
             }
             Text(
-                text = "Tel : ${user.phone}",
+                text = "Distance : ${h.distance} km",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
-            Row {
-                Text("Specialties :")
-                for (s in user.specialty){
-                    Text(
-                        text = " $s,",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Light
-                    )
-                }
-            }
-
         }
 
     }

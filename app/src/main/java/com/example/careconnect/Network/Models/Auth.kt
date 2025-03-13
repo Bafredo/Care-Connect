@@ -37,7 +37,7 @@ data class ValidateOtp(
 data class RecievedUser(
     val message : String? = null,
     val token : String? = null,
-    val user : SubUser? = SubUser(null,null,null)
+    val user : SubUser? = SubUser(null,null,null,null)
 )
 
 
@@ -47,5 +47,32 @@ data class RecievedUser(
 data class SubUser(
     val id : String?,
     val email : String?,
+    val username: String?,
     val role : String?
+)
+
+
+@Serializable
+data class Doctor(
+    val id : String,
+    val phone : String? = null,
+    val email : String,
+    val full_name : String,
+    val specialty : List<String>
+)
+
+fun Doctor.toDto() = DoctorDto(
+    this.id,
+    this.phone,
+    this.email,
+    this.full_name,
+    this.specialty
+)
+
+data class DoctorDto(
+    val id : String,
+    val phone : String? = null,
+    val email : String,
+    val full_name : String,
+    val specialty : List<String>
 )

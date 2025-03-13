@@ -1,6 +1,6 @@
 package com.example.careconnect.Network.Models
 
-import com.example.careconnect.Pages.Hidden.ChatMessageDto
+import com.example.careconnect.Database.ChatMessageDto
 import kotlinx.serialization.Serializable
 
 
@@ -12,7 +12,7 @@ data class UplinkOne(
 @Serializable
 data class Uplink(
     val message: String,
-    val chatid: String
+    val chatid: String? = null
 )
 
 

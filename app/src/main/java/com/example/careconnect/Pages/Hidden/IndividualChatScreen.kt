@@ -33,15 +33,17 @@ import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import com.example.careconnect.Database.ChatMessageDto
 import com.example.careconnect.MainActivity
 import com.example.careconnect.Network.Calls.chatBot
 import com.example.careconnect.Network.Models.toChatMessage
 import com.example.careconnect.Network.Models.toDto
 import com.example.careconnect.R
 import com.example.careconnect.ViewModels.AuthViewModel
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
-data class ChatMessageDto(val text: String, val isSent: Boolean)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,18 +51,23 @@ fun ChatScreen(
     vm: AuthViewModel,
     isBot: Boolean = false,
     contactName: String = "Name",
-    chatid: String,
+    chatid: String?,
     navController: NavController,
     context: Context,
-    activity: MainActivity
+    activity: MainActivity,
+    recieverid : String? = null
 ) {
-    var messages by remember { mutableStateOf(listOf<ChatMessageDto>()) }
+    var messages by remember { mutableStateOf(listOf<ChatMessageDto>())}
     var messageText by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
+    var chat_id by remember { mutableStateOf(chatid)}
+
 
     // Load chats only once (or when chatid changes) using LaunchedEffect
-    LaunchedEffect(chatid) {
-        messages = vm.getChats(chatid)
+    if(chat_id != null){
+        LaunchedEffect(chat_id) {
+            chat_id?.let { vm.listenToChat(it) }
+        }
     }
 
     Column(
@@ -73,7 +80,10 @@ fun ChatScreen(
                     Color(0xFFECF2FF)
             )
     ) {
-        ChatHeader(contactName,navController,context,activity)
+        ChatHeader(contactName,navController,context,activity){
+            navController.popBackStack()
+
+        }
         MessagesList(messages, modifier = Modifier.weight(1f))
         ChatInput(
             messageText = messageText,
@@ -90,20 +100,30 @@ fun ChatScreen(
                         coroutineScope.launch {
                             vm.getUser()?.token?.let { token ->
                                 try {
+                                    println(chatid)
                                     val response = chatBot(
                                         u = sentMessage,
-                                        chatid = chatid,
+                                        chatid = if(chat_id == "new") null else chat_id,
                                         autht = token
                                     )
                                     response?.toDto()?.toChatMessage()?.let { botMessage ->
                                         messages = messages + botMessage
                                         response.chatid?.let {
-                                            vm.updateChats(it, messages)
-                                            println("created chatId : ${response.chatid}")
+                                            vm.updateChats(it,messages)
+                                            println("created chatId : ${it}")
+                                            chat_id = it
                                         }
                                     }
                                 } catch (e: Exception) {
                                     // TODO: Handle network exceptions (e.g., show an error message)
+                                }
+                            }
+                        }
+                    } else {
+                        if(recieverid != null){
+                            coroutineScope.launch {
+                                vm.sendMessage(sentMessage,recieverid){it ->
+                                    vm.updateChats(it,messages,recieverid)
                                 }
                             }
                         }
@@ -114,7 +134,7 @@ fun ChatScreen(
     }
 }
 @Composable
-fun ChatHeader(contactName: String, navController: NavController, context: Context, activity: MainActivity) {
+fun ChatHeader(contactName: String, navController: NavController, context: Context, activity: MainActivity,onBackClick : ()->Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -124,7 +144,7 @@ fun ChatHeader(contactName: String, navController: NavController, context: Conte
             .padding(horizontal = 8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { navController.popBackStack() }) {
+            IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.Filled.ArrowBack,
                     contentDescription = "Back"
@@ -146,7 +166,7 @@ fun ChatHeader(contactName: String, navController: NavController, context: Conte
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = {
-                val phoneNumber = "0114614526"
+                val phoneNumber = "0795290373"
                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE)
                     == PackageManager.PERMISSION_GRANTED) {
                     val callIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$phoneNumber")).apply {
@@ -279,3 +299,25 @@ fun ChatBubble(message: ChatMessageDto) {
         }
     }
 }
+@Serializable
+data class FirestoreMessage(
+    var participants : List<Participant> = emptyList(),
+    var messages : List<MessageItem> = emptyList(),
+    var createdAt : Long = 0L
+)
+
+fun MessageItem.toChatMessageDto(userid : String) = ChatMessageDto(
+    text = this.message,
+    isSent = this.senderid == userid
+)
+@Serializable
+data class MessageItem(
+    var message : String = "",
+    var senderid : String = "",
+    val timestamp : Long = 0L
+)
+@Serializable
+data class Participant(
+    var id : String = "",
+    var name : String = ""
+)

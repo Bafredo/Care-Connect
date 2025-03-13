@@ -1,6 +1,5 @@
 package com.example.careconnect.Database
 
-import com.example.careconnect.Pages.Hidden.ChatMessageDto
 import io.realm.kotlin.ext.realmListOf
 import io.realm.kotlin.types.RealmList
 import io.realm.kotlin.types.RealmObject
@@ -20,6 +19,7 @@ open class Chats : RealmObject {
     @PrimaryKey
     var chatid: String = ""
     var messagelist: RealmList<ChatMessage> = realmListOf()
+    var recieverid : String = ""
 }
 open class ChatMessage : RealmObject{
     var text: String= ""

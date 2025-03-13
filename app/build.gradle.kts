@@ -76,9 +76,14 @@ dependencies {
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.31.1-alpha")
     implementation("io.coil-kt:coil-compose:2.6.0")
 
+    implementation("com.google.android.gms:play-services-location:21.0.1")
 
     implementation("io.realm.kotlin:library-base:2.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0")
+    implementation("com.google.firebase:firebase-firestore:25.1.2")
+
+
+
 }
 
 

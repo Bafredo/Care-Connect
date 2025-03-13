@@ -21,3 +21,5 @@ fun RealmUser.toUserdata() =
         password = this.password,
         token = this.token
     )
+
+data class ChatMessageDto(val text: String, val isSent: Boolean)
